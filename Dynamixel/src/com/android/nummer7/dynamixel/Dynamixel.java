@@ -179,7 +179,7 @@ public class Dynamixel {
 		 final static byte  Rx_MODE                     = 0;
 		 final static byte  LOCK                        = 1;
 	}
-	 
+	
 	public static byte getChecksum(byte[] data, int length){
 		int sum = 0;
 		for (int i=2; i<length; i++){
@@ -188,10 +188,10 @@ public class Dynamixel {
 		}
 		return (byte)((~sum) & 0xff);
 	}
-
+	
 	public static byte[] gbInstructionPacket = new byte[DXL_MAXNUM_TXPACKET];
 	public static byte[] gbStatusPacket = new byte[DXL_MAXNUM_RXPACKET];
-
+	
 	/*
 	public static void dxl_ping( int id ) throws IOException
 	{

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="rwDynamixelAddress">
+        <attr name="desc" format="string"/>
+        <attr name="readonly" format="boolean" default="false"/>
+        <attr name="address" format="integer"/>
+        <attr name="value" format="integer"/>
+        <attr name="minValue" format="integer"/>
+        <attr name="maxValue" format="integer"/>
+    </declare-styleable>
+</resources>
