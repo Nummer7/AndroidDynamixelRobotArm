@@ -34,7 +34,7 @@ public class rwDynamixelAddress extends LinearLayout{
 	short maxValue;
 	boolean writable;
 	
-	DynamixelInstructionPackage p;
+	DynamixelPackageBuilder p;
 	public UsbSerialPort port;
 	public Spinner dropdown_id;
 	
@@ -43,7 +43,7 @@ public class rwDynamixelAddress extends LinearLayout{
 		((Button) findViewById(R.id.writeBtn)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	try {
-            		p = new DynamixelInstructionPackage();
+            		p = new DynamixelPackageBuilder();
             		byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
             		Log.d("STUFF", "\n"+id+" "+address+" "+value+" --"+maxValue);
             		if (maxValue > 255)
@@ -58,7 +58,7 @@ public class rwDynamixelAddress extends LinearLayout{
 		((Button) findViewById(R.id.readBtn)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	try {
-            		p = new DynamixelInstructionPackage();
+            		p = new DynamixelPackageBuilder();
             		byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
             		Log.d("STUFF", "\n"+id+" "+address+" "+value+" --"+maxValue);
             		
@@ -67,7 +67,7 @@ public class rwDynamixelAddress extends LinearLayout{
             		else	port.write(p.ReadByte(id, address), p.packageLength); 	
             		byte[] a = new byte[128];
         			port.read(a,128);
-        			p.analysePackage(a);
+        			//p.analysePackage(a);
         			
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -143,7 +143,7 @@ public class rwDynamixelAddress extends LinearLayout{
     }
     
 	public void init(Context context,AttributeSet attrs) {
-	    p = new DynamixelInstructionPackage();
+	    p = new DynamixelPackageBuilder();
 	    
 	    TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.rwDynamixelAddress );
 		for (int i = 0; i < a.getIndexCount(); ++i)

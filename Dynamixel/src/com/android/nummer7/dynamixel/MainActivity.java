@@ -3,14 +3,32 @@ package com.android.nummer7.dynamixel;
 import java.io.IOException;
 import java.util.List;
 
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbManager;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -28,66 +46,27 @@ import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TextView;
 
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
-import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
-
-import android.widget.Switch;
-
 public class MainActivity extends FragmentActivity {
 
-	public UsbManager manager;
-	public List<UsbSerialDriver> availableDrivers;
-	public UsbDeviceConnection connection;
-	public UsbSerialDriver driver;
-	public UsbSerialPort port;
-	
+	public byte id;
 	public Spinner dropdown_baudrate;
 	public Spinner dropdown_id;
-	public byte id;
+	public DynamixelSocket control;
+	public RobotArm robot;
 	
-	private float[] getMatrix(float alpha, float[] offset3D){
-			float[] a = {	(float) Math.cos(alpha), (float) -Math.sin(alpha), 		0, 				offset3D[0], 
-	              			(float) Math.sin(alpha), (float) Math.cos(alpha), 		0, 				offset3D[1],
-	              								0, 					0, 				1, 				offset3D[2],
-	              								0, 					0, 				0, 				1};
-			return a;
-	}
-	
-	
-	
-	
-	private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
-	private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-	    public void onReceive(Context context, Intent intent) {
-	        String action = intent.getAction();
-	        if (ACTION_USB_PERMISSION.equals(action)) {
-	            synchronized (this) {
-	                UsbDevice device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-	                if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
-	                    if(device != null){
-	                      //call method to set up device communication
-	                   }
-	                }
-	                else {
-	                    Log.d("STUFF", "permission denied for device " + device);
-	                }
-	            }
-	        }
-	    }
-	};
-
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		
-		manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-		final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
-		final PendingIntent mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
-		IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-		registerReceiver(mUsbReceiver, filter);
+		control = new DynamixelSocket(this);
+
+		try {
+			//robot = new RobotArm(control);
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		
 		dropdown_baudrate = (Spinner) findViewById(R.id.spinner1);
         dropdown_baudrate.setSelection(12);
@@ -98,38 +77,20 @@ public class MainActivity extends FragmentActivity {
 
 		((Button) findViewById(R.id.loaddriveperm)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	// Find all available drivers from attached devices.
-            	manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-            	availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-            	if (availableDrivers.isEmpty()){
-            	  return;
-            	}
-            	
-            	//Log.d("STUFF", "mate: 11 ");
-				
-            	// Open a connection to the first available driver.
-            	driver = availableDrivers.get(0);
-            	manager.requestPermission(driver.getDevice(), mPermissionIntent);
-            	connection = manager.openDevice(driver.getDevice());
-            	if (connection == null){
-            	  return;
-            	}
-            	//Log.d("STUFF", "mate: 22");
-				
-            	// Read some data! Most have just one port (port 0).
-            	port = driver.getPorts().get(0);
+            	control.loadDriver();
             }
         });
         
         ((Button) findViewById(R.id.openserial)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	try {
-					port.open(connection);
-					//Log.d("STUFF", "mate: "+Integer.parseInt(dropdown_baudrate.getSelectedItem().toString()));
-					port.setParameters(Integer.parseInt(dropdown_baudrate.getSelectedItem().toString()), UsbSerialPort.DATABITS_8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-				} catch (IOException e) {
+					control.openSerial(Integer.parseInt(dropdown_baudrate.getSelectedItem().toString()));
+				} catch (NumberFormatException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					Log.e("STUFF", "exception: " + e.getMessage()); 
 				}
             }
         });
@@ -137,122 +98,43 @@ public class MainActivity extends FragmentActivity {
         ((Button) findViewById(R.id.closeserial)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	try {
-            		port.close();
-            	} catch (IOException e) {
-            	}
+					control.closeSerial();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					Log.e("STUFF", "exception: " + e.getMessage()); 
+				}
             }
         });
         
         ((Button) findViewById(R.id.starttestmotionleft)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-        		try {
-        			byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
-        			Log.d("STUFF", "using id"+id);
-        			port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 0), p.packageLength);
-					port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L, (short) 0), p.packageLength);
-					port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) 500), p.packageLength);
-					port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_POSITION_L, (short) 100), p.packageLength);
-					port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 1), p.packageLength);
-				} catch (IOException e) {
+            	try {
+					control.continious_motion_left(getId());
+				}catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Log.e("STUFF", "exception: " + e.getMessage()); 
 				}
             }
         });
         
         ((Button) findViewById(R.id.starttestmotionright)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-        		try {
-        			byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
-        			Log.d("STUFF", "using id"+id);
-        			port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 0), p.packageLength);
-					port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L, (short) 0), p.packageLength);
-					port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) 1500), p.packageLength);
-					port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_POSITION_L, (short) 100), p.packageLength);
-					port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 1), p.packageLength);
-				} catch (IOException e) {
+            	try {
+					control.continious_motion_right(getId());
+				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Log.e("STUFF", "exception: " + e.getMessage()); 
 				}
             }
         });
         
         ((Button) findViewById(R.id.stoptestmotion)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-        		try {
-        			byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
-        			Log.d("STUFF", "using id"+id);
-        			DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-        			port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 0), p.packageLength);
-        			port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) 0), p.packageLength);
-				} catch (IOException e) {
+            	try {
+					control.continious_motion_stop(getId());
+				} catch (Exception e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-            }
-        });
-
-        final byte[] addresses = {Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, 
-        			Dynamixel.INSTRUCTIONS.REGRAM.GOAL_POSITION_L,
-        			Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE,
-        			Dynamixel.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L
-        			};
-        short[] limits = {(short) 65353, (short) 65353, (short)255, (short)65353};
-        String[] descs = {"Speed", "Position", "Torque", "FreeRunning"};
-        
-        LinearLayout a = (LinearLayout) findViewById(R.id.linlay);
-        rwDynamixelAddress n;
-        for (int i=0; i<4; i++){
-        	n = new rwDynamixelAddress(this);
-        	n.dropdown_id = dropdown_id;
-        	n.setDesc(descs[i]);
-        	n.setAddress(addresses[i]);
-        	n.setMinValue(0);
-        	n.setMaxValue(limits[i]);
-        	n.setValue(1);
-        	n.initListeners();
-        	a.addView(n);
-        }
-
-	    //port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.LED,Dynamixel.ON), p.packageLength);
-	    //port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.LED,Dynamixel.OFF), p.packageLength);
-
-        ((Button) findViewById(R.id.button7)).setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-        		try {
-        			byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
-        			Log.d("STUFF", "using id"+id);
-        			DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-        			
-        			port.write(p.ReadByte(id, Dynamixel.INSTRUCTIONS.REGRAM.LED), p.packageLength);
-        			byte[] a = new byte[128];
-        			port.read(a,128);
-        			p.analysePackage(a);
-        			//port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) 0), p.packageLength);
-        			
-        		} catch (IOException e) {
-					e.printStackTrace();
-				}
-            }
-        });
-        
-        ((Button) findViewById(R.id.button1)).setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-        		try {
-        			byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
-        			Log.d("STUFF", "using id"+id);
-        			DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-        			
-        			port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGEEPROM.ID, (byte)3), p.packageLength);
-        			//byte[] a = new byte[128];
-        			//port.read(a,128);
-        			//p.analysePackage(a);
-        			//port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) 0), p.packageLength);
-        			
-        		} catch (IOException e) {
-					e.printStackTrace();
+					Log.e("STUFF", "exception: " + e.getMessage()); 
 				}
             }
         });
@@ -262,11 +144,24 @@ public class MainActivity extends FragmentActivity {
 
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser){
 				((TextView)  findViewById(R.id.textView3)).setText((progress-150)+"°");
-				setPos(Integer.parseInt(dropdown_id.getSelectedItem().toString()),(progress*1022)/300);
+				
+				try {
+					
+					byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
+					short speed = (short)(((SeekBar) findViewById(R.id.seekBar2)).getProgress()+1);
+					//Log.d("STUFF", "ID: "+id+" winkel: "+progress+ " speed:"+speed);
+					control.writeWord(id, DynamixelConstants.INSTRUCTIONS.REGEEPROM.CW_ANGLE_LIMIT_L, (short) 0);
+					control.writeWord(id, DynamixelConstants.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L, (short) 1023);
+					control.writeAngleAndSpeed(id, (short)progress, speed);
+					
+					//control.Read((byte) Integer.parseInt(dropdown_id.getSelectedItem().toString()));
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					Log.e("STUFF", "exception: " + e.getMessage()); 
+				}
 			}
 			public void onStartTrackingTouch(SeekBar seekBar) {
 				// TODO Auto-generated method stub
-				
 			}
 			public void onStopTrackingTouch(SeekBar seekBar) {
 				
@@ -276,7 +171,7 @@ public class MainActivity extends FragmentActivity {
 		((SeekBar) findViewById(R.id.seekBar2)).setProgress(200);
 		((SeekBar) findViewById(R.id.seekBar2)).setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser){
-				((TextView)  findViewById(R.id.textView5)).setText( ((int)((progress+1)/1022)*114)+" rpm");
+				((TextView)  findViewById(R.id.textView5)).setText( ((int)(((float)(progress+1))/1022)*114)+" rpm");
 			}
 			public void onStartTrackingTouch(SeekBar seekBar) {
 				// TODO Auto-generated method stub
@@ -287,127 +182,86 @@ public class MainActivity extends FragmentActivity {
 			}
 		});
         
-		((Button) findViewById(R.id.button2)).setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	float[] alpha = {0,45,45,0,0,0};
-        		
-        		float[] one = {	1,0,0,0,
-        						0,1,0,0,
-        						0,0,1,0,
-        						0,0,0,1};
-        		Matrix.rotateM(one, 0, alpha[0], (float) 0, (float) 0, (float) 1);
-        		Matrix.translateM(one, 0, 0, 0, 5);
-        		
-        		Matrix.rotateM(one, 0, 90, (float) 1, (float) 0, (float) 0);
-        		Matrix.rotateM(one, 0, alpha[1], (float) 1, (float) 1, (float) 0);
-        		
-        		Matrix.translateM(one, 0, 0, 0, 11);
-        		Matrix.rotateM(one, 0, alpha[2], (float) 1, (float) 1, (float) 0);
-
-        		Matrix.translateM(one, 0, 0, 0, 11);
-        		
-        		/*
-        		float[] vec = {1,0,0,1};
-        		float[] vecres = {0,0,0,0};
-        		
-        		Matrix.multiplyMV(vecres, 0, one, 0, vec, 0);
-        		*/
-        		String g = "\n";
-        		for(int i=0; i<16; i++){
-        			g += ((int) one[i])+" ";
-        			if ((i % 4) == 3)
-        				g += "\n";
-        		}
-        		g += "\n";
-        		Log.d("STUFF", "Matrix: "+g);
-        		
-        		for(int i=0; i<6; i++){
-        			setPos(i,alpha[i]);
-        		}
-            }
-        });
 		
-		((Button) findViewById(R.id.button3)).setOnClickListener(new View.OnClickListener() {
+		((Button) findViewById(R.id.winkelBtn)).setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	
-            	//setPos(1,150);
-            	//setPos(2,150);
-            	setPos(3,150);
-            	//setPos(4,150);
-            	//setPos(5,150);
-            	
-        		//for(int i=1; i<6; i++)
-        		//	setPos(i,150);
-            }
-        });
-
-
-        ((Button) findViewById(R.id.button4)).setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-        		try {
-        			byte id = (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
-        			DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-        			
-        			Log.d("STUFF", "using id"+id);
-        			port.write(p.Read(id, Dynamixel.INSTRUCTIONS.REGEEPROM.CW_ANGLE_LIMIT_L, (byte)2), p.packageLength);
-        			byte[] a = new byte[128];
-        			port.read(a,128);
-        			Log.d("STUFF", "word: "+p.getWord(a));
-        			//p.analysePackage(a);
-        			
-        			Log.d("STUFF", "mopit");
-        			port.write(p.Read(id, Dynamixel.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L, (byte)2), p.packageLength);
-        			a = new byte[128];
-        			port.read(a,128);
-        			Log.d("STUFF", "word: "+p.getWord(a));
-        			//p.analysePackage(a);
-        			
-        			//port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) 0), p.packageLength);
-        			
-        		} catch (IOException e) {
-					e.printStackTrace();
+            	try {
+            		
+            		for (double i=0; i<1; i+=0.2){
+            			for (double j=0; j<1; j+=0.2){
+            				for (double k=0; k<1; k+=0.2){
+            					Log.e("STUFF", "x/y/z - "+i+"/"+j+"/"+k); 
+            					goTo(i, j, k);
+            				}
+            			}
+            		}
+            		/*
+            		Log.e("STUFF", "goTo(0, 1, 1);: "); 
+            		goTo(0, 1, 1);
+            		Log.e("STUFF", "goTo(1, 0, 1);: "); 
+            		goTo(1, 0, 1);
+            		Log.e("STUFF", "goTo(1, 1, 0);: "); 
+            		goTo(1, 1, 0);
+            		
+            		Log.e("STUFF", "goTo(1, 0, 0);: "); 
+            		goTo(1,0,0);
+            		Log.e("STUFF", "goTo(0, 1, 0);: "); 
+            		goTo(0,1,0);
+            		Log.e("STUFF", "goTo(0, 0, 1);: "); 
+            		goTo(0,0,1);
+            		
+            		Log.e("STUFF", "");
+            		*/
+            		/*
+            		DynamixelAX12 m1 = new DynamixelAX12((byte)1,control);
+            		m1.setServoMode();
+            		m1.resetTorque();
+            		m1.setAngle((short) ((SeekBar)findViewById(R.id.seekBar1)).getProgress());
+            		m1.setSpeed((short) ((SeekBar)findViewById(R.id.seekBar2)).getProgress());
+            		m1.setTorque();
+            		Log.d("STUFF", " iddd:"+getId())
+            		*/
+            		/*
+					control.writeAngleAndSpeedAction((byte)1, (short)150, (short)100);
+					control.writeAngleAndSpeedAction((byte)2, (short)150, (short)100);
+					control.writeAngleAndSpeedAction((byte)3, (short)150, (short)100);
+					control.writeAngleAndSpeedAction((byte)4, (short)150, (short)100);
+					*/
+            		//short[] angle = {150,150,150,150,150,150};
+            		//short[] speed = {150,150,150,150,150,150};
+            		//control.write6axes(angle,speed);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					
+					Log.e("STUFF", "exception: " + e.getMessage()); 
 				}
             }
         });
-        
 		
-		/*
-		g = "\n";
-		for(int i=0; i<4; i++){
-			g += ((int) vecres[i])+" ";
-		}
-		g += "\n";
-		Log.d("STUFF", "Matrix: "+g);
-		*/
+		((Button) findViewById(R.id.zuruecksetzenBtn)).setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+            	try {
+            		DynamixelAX12 m1 = new DynamixelAX12((byte)1,control);
+            		m1.setContinuousMode();
+            		m1.resetTorque();
+            		m1.continuousMoveLeft();
+            		m1.setTorque();
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					Log.e("STUFF", "exception: " + e.getMessage()); 
+				}
+            }
+        });
+
 	}
 	
-	public void setPos(int id2, float angle){
-		byte id = (byte) id2;
-		
-		short pos = (short) ((angle*1020)/300);
-		Log.d("STUFF", angle+" angle: "+pos);
-		try {
-			DynamixelInstructionPackage p = new DynamixelInstructionPackage();
-			port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 0), p.packageLength);
-			port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_SPEED_L, (short) (((SeekBar) findViewById(R.id.seekBar2)).getProgress()+1)), p.packageLength);
-			port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L, (short) 0x03FF), p.packageLength);
-			port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGRAM.GOAL_POSITION_L, pos), p.packageLength);
-			port.write(p.WriteByte(id, Dynamixel.INSTRUCTIONS.REGRAM.TORQUE_ENABLE, (byte) 1), p.packageLength);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		//port.write(p.WriteWord(id, Dynamixel.INSTRUCTIONS.REGEEPROM.CCW_ANGLE_LIMIT_L, (short) 0), p.packageLength);
-		
-	}
-
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-
+	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle action bar item clicks here. The action bar will
@@ -420,4 +274,41 @@ public class MainActivity extends FragmentActivity {
 		return super.onOptionsItemSelected(item);
 	}
 	
+	public byte getId(){
+    	return (byte) Integer.parseInt(dropdown_id.getSelectedItem().toString());
+    }
+	
+	double ro(double in){
+		return Math.round(in * 100.0) / 100.0;
+	}
+	
+	void goTo(double x, double y, double z){
+		double c = 180/Math.PI;
+		double a1=0.07, a2=0.11, a3=0.11;
+		double al1=Math.PI/2, al2=0, al3=0;
+		double d1=0,d2=0,d3=0;
+		double v1=0, v1_1=0, v1_2=0, v2=0, v2_1=0, v2_2=0, v2_3=0, v2_4=0, v3=0, v3_1=0, v3_2=0;
+		
+		
+		double c3 = (Math.pow(x, x)+Math.pow(y, y)+Math.pow(z, z)-Math.pow(a2, a2)-Math.pow(a3, a3))/(2*a2*a3);
+		double s3 = Math.sqrt(1-Math.pow(c3,c3));
+		double s3m = -1*Math.sqrt(1-Math.pow(c3,c3));
+		v3_1 = Math.atan2(s3, c3);
+		v3_2 = Math.atan2(s3m, c3);
+		
+		
+		double c2 = (Math.sqrt(Math.pow(x,x)+Math.pow(y,y))*(a2+a3*c3)+z*a3*s3)/(Math.pow(a2,a2)+Math.pow(a3,a3)+2*a2*a3*c3);
+		double s2 = (z*(a2+a3*c3)+Math.sqrt(Math.pow(x,x)+Math.pow(y,y)*a3*s3))/(Math.pow(a2,a2)+Math.pow(a3,a3)+2*a3*c3);
+		
+		v2_1 = Math.atan2((a2+a3*c3)*z-a3*s3*Math.sqrt(Math.pow(x,x)+Math.pow(y,y)), (a2+a3*c3)*Math.sqrt(Math.pow(x,x)+Math.pow(y,y))+a3*s3*z );
+		v2_2 = Math.atan2((a2+a3*c3)*z+a3*s3*Math.sqrt(Math.pow(x,x)+Math.pow(y,y)), -(a2+a3*c3)*Math.sqrt(Math.pow(x,x)+Math.pow(y,y))+a3*s3*z );
+		v2_3 = Math.atan2((a2+a3*c3)*z-a3*s3m*Math.sqrt(Math.pow(x,x)+Math.pow(y,y)), (a2+a3*c3)*Math.sqrt(Math.pow(x,x)+Math.pow(y,y))+a3*s3m*z );
+		v2_2 = Math.atan2((a2+a3*c3)*z+a3*s3m*Math.sqrt(Math.pow(x,x)+Math.pow(y,y)), -(a2+a3*c3)*Math.sqrt(Math.pow(x,x)+Math.pow(y,y))+a3*s3m*z );
+		
+		
+		v1_1 = Math.atan2(y, x);
+		v1_2 = Math.atan2(-y, -x);
+		// "v1_1:"+ro(v1_1*c)+" v1_2:"+ro(v1_2*c) + " --- "+
+		Log.d("STUFF","v2_1:" + ro(v2_1*c)+ " v2_2:" + ro(v2_2*c) + " v2_3:" + ro(v2_3*c) + " v2_4:" + ro(v2_4*c)+ " ---  v3_1:" + ro(v3_1*c)+ " v3_2:"+ro(v3_2*c));
+	}
 }

@@ -38,7 +38,7 @@
                 android:orientation="vertical" >
 
                 <TextView
-                    android:id="@+id/textView1"
+                    android:id="@+id/TextView03"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Connection" />
@@ -80,21 +80,27 @@
                         android:layout_weight="1"
                         android:entries="@array/baud_arrays"
                         android:prompt="@string/baud_prompt" />
-
-                    <Spinner
-                        android:id="@+id/dropdown_id"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:entries="@array/id_arrays"
-                        android:prompt="@string/id_prompt" />
                 </LinearLayout>
+
+                <TextView
+                    android:id="@+id/textView1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Dynamixel ID" />
+
+                <Spinner
+                    android:id="@+id/dropdown_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:entries="@array/id_arrays"
+                    android:prompt="@string/id_prompt" />
 
                 <TextView
                     android:id="@+id/TextView01"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Free Running" />
+                    android:text="Free Running Mode" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -119,27 +125,11 @@
                         android:text="R" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" >
-
-                    <Button
-                        android:id="@+id/button7"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="26dp"
-                        android:layout_weight="1"
-                        android:text="Button" />
-
-                    <Button
-                        android:id="@+id/button1"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="80dp"
-                        android:layout_weight="1"
-                        android:text="Button" />
-
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/TextView02"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Precision Mode" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -198,26 +188,49 @@
                     android:layout_height="wrap_content" >
 
                     <Button
-                        android:id="@+id/button2"
+                        android:id="@+id/winkelBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Winkels!" />
 
                     <Button
-                        android:id="@+id/button3"
+                        android:id="@+id/zuruecksetzenBtn"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="zuruecksetzen" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent" >
 
                     <Button
                         android:id="@+id/button4"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Button" />
+                        android:text="readStuff" />
 
+                    <Button
+                        android:id="@+id/button1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="W" />
+
+                    <Button
+                        android:id="@+id/button2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="R" />
+
+                    <Button
+                        android:id="@+id/button3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="set id to 3" />
                 </LinearLayout>
 
-            </LinearLayout>
+</LinearLayout>
 
         </ScrollView>
     </FrameLayout>
